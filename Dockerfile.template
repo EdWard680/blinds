@@ -6,9 +6,9 @@ RUN apt-get update && \
 
 RUN pip3 install wiringpi
 
-COPY . /usr/src/app/blinds/
+COPY . /usr/src/app/
 
 ENV INITSYSTEM on
 
-CMD ["python3", "/usr/src/app/blinds/main.py"]
+CMD ["python3", "/usr/src/app/main.py"]
 
