@@ -1,0 +1,2 @@
+# blinds
+automating me blinds :)
