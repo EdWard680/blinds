@@ -1,10 +1,14 @@
-FROM resin/%%BALENA_MACHINE_NAME%%-python
+FROM resin/%%BALENA_MACHINE_NAME%%-debian
 
-RUN pip install wiringpi
+RUN apt-get update && \
+	apt-get install -yq --no-install-recommends python3 python3-setuptools python3-pip && \
+	apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY . /usr/src/blinds/
+RUN pip3 install wiringpi
+
+COPY . /usr/src/app/blinds/
 
 ENV INITSYSTEM on
 
-CMD ["python3", "/usr/src/blinds/main.py"]
+CMD ["python3", "/usr/src/app/blinds/main.py"]
 
