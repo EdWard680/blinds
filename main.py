@@ -6,10 +6,10 @@ import time
 
 def default_config():
 	return {
-		'motor_pin': os.getenv('BLINDS_MOTOR_PIN', 0),
-		'direction_pin': os.getenv('BLINDS_DIRECTION_PIN', 2),
-		'open_millis': os.getenv('BLINDS_DEFAULT_OPEN_MILLIS', 6000),
-		'close_offset_millis': os.getenv('BLINDS_DEFAULT_CLOSE_MILLIS', 0)
+		'motor_pin': int(os.getenv('BLINDS_MOTOR_PIN', "0")),
+		'direction_pin': int(os.getenv('BLINDS_DIRECTION_PIN', "2")),
+		'open_millis': int(os.getenv('BLINDS_DEFAULT_OPEN_MILLIS', "6000")),
+		'close_offset_millis': int(os.getenv('BLINDS_DEFAULT_CLOSE_MILLIS', "0"))
 	}
 
 
@@ -29,7 +29,7 @@ def main():
 	
 	controller = Controller(default_config())
 	
-	if os.getenv('BLINDS_RUN_TEST', 1) == 1:
+	if os.getenv('BLINDS_RUN_TEST', "1") == "1":
 		test_controller(controller)
 	
 	
