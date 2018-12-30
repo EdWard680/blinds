@@ -8,8 +8,10 @@ def default_config():
 	return {
 		'motor_pin': int(os.getenv('BLINDS_MOTOR_PIN', "0")),
 		'direction_pin': int(os.getenv('BLINDS_DIRECTION_PIN', "2")),
+		'button_pin': int(os.getenv('BLINDS_BUTTON_PIN', "28")),
 		'open_millis': int(os.getenv('BLINDS_DEFAULT_OPEN_MILLIS', "6000")),
-		'close_offset_millis': int(os.getenv('BLINDS_DEFAULT_CLOSE_MILLIS', "0"))
+		'close_offset_millis': int(os.getenv('BLINDS_DEFAULT_CLOSE_MILLIS', "0")),
+		'debounce_millis': int(os.getenv('BLINDS_DEBOUNCE_MILLIS', "50"))
 	}
 
 
@@ -21,6 +23,17 @@ def test_controller(controller):
 		time.sleep(10)
 		controller.close_blinds()
 
+def button_controller(controller):
+	logging.info("Running button_controller")
+	while True:
+		while not controller.button_pressed():
+			time.sleep(0.01)
+		controller.open_blinds()
+		
+		while not controller.button_pressed():
+			time.sleep(0.01)
+		controller.close_blinds()
+
 def main():
 	print("Starting blinds controller")
 	
@@ -29,8 +42,11 @@ def main():
 	
 	controller = Controller(default_config())
 	
-	if os.getenv('BLINDS_RUN_TEST', "1") == "1":
+	mode = os.getenv('BLINDS_MODE', "LED_TEST")
+	if mode == "LED_TEST":
 		test_controller(controller)
+	elif mode == "BUTTON_TEST":
+		button_controller(controller)
 	
 	
 

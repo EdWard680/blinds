@@ -1,10 +1,8 @@
 import wiringpi
 import logging
+from wiringpi import INPUT, OUTPUT, PUD_OFF, PUD_UP, PUD_DOWN
 
 logger = logging.getLogger(__name__)
-
-INPUT = 0
-OUTPUT = 1
 
 def run_motor_for(pin, dur):
 	wiringpi.digitalWrite(pin, 1)
@@ -27,14 +25,33 @@ class Controller:
 		logger.debug("Controller.reconfigure()")
 		wiringpi.pinMode(self.config['motor_pin'], OUTPUT)
 		wiringpi.pinMode(self.config['direction_pin'], OUTPUT)
+		wiringpi.pinMode(self.config['button_pin'], INPUT)
+		wiringpi.pullUpDnControl(self.config['button_pin'], PUD_UP)
 	
 	def reset_position(self, pos=0):
 		logger.debug("Controller.reset_position(%i)", pos)
 		self.amount_opened = pos
 	
 	def get_position(self):
-		logger.debug("Controller.get_position()")
+		logger.debug("Controller.get_position() -> %i", self.amount_opened)
 		return self.amount_opened
+	
+	def closed(self):
+		logger.debug("Controller.closed() -> %i", 1 if self.amount_opened == 0 else 0)
+		return self.amount_opened == 0
+	
+	def button_pressed(self):
+		# logger.debug("Controller.button_pressed()")
+		pin = self.config['button_pin']
+		dur = self.config['debounce_millis']
+		start = wiringpi.millis()
+		while wiringpi.millis() - start < dur:
+			if wiringpi.digitalRead(pin):
+				# logger.debug("Controller.button_pressed() -> False")
+				return False
+		
+		logger.debug("Controller.button_pressed() -> True")
+		return True
 	
 	def open_blinds(self, amount=-1):
 		logger.debug("Controller.open_blinds(%i)", amount)
