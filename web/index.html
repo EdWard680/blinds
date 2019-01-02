@@ -1,0 +1,115 @@
+<html>
+	<head>
+		<title>Blinds</title>
+		<script src="json-rpc.min.js"></script>
+		<script>
+			function setupRequest(async=true) {
+				const ret = new XMLHttpRequest();
+				ret.open("POST", "/", async);
+				ret.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+				return ret;
+			}
+			
+			function command(method, params, cbk=undefined) {
+				const ret = setupRequest();
+				const request = new JSON_RPC.Notification(method, params);
+				if(cbk) {
+					ret.onreadystatechange = function() {
+						if(ret.readyState === 4) {
+							cbk(ret.status === 200);
+							update();
+						}
+					}
+				}
+				ret.send(request.toString());
+			}
+			
+			function data(method) {
+				const ret = setupRequest(false);
+				const request = new JSON_RPC.Request(method, []);
+				
+				ret.send(request.toString());
+				
+				const response = new JSON_RPC.parse(ret.responseText);
+				if(response.error) {
+					alert(response.error);
+				}
+				
+				return response.result;
+			}
+			
+			function checkResult(success) {
+				update();
+				if(!success) {
+					alert("It bwoke");
+				}
+			}
+			
+			function doOpen() {
+				command("open_blinds", [], checkResult);
+			}
+			
+			function doClose() {
+				command("close_blinds", [], checkResult);
+			}
+			
+			function doReset() {
+				command("reset_position", [], checkResult);
+			}
+			
+			function doConfig() {
+				const elem = document.getElementById("config");
+				command("reconfigure", [JSON.parse(elem.value)], checkResult);
+			}
+			
+			function update() {
+				const config = document.getElementById("config");
+				if(document.activeElement !== config) {
+					config.value = JSON.stringify(data("get_config"), null, 4);
+				}
+				
+				const how_open = document.getElementById("how_open");
+				how_open.value = data("get_position").toString();
+			}
+			
+			function start() {
+				update();
+				window.setInterval(update, 2000);
+			}
+			
+		</script>
+	</head>
+
+	<body onload="start()">
+		<h1>Control teh Blinds</h1>
+		
+		<!--input type="number" id="open_millis" min="0" value="6000" />
+		<label>Amount to open: number of milliseconds to open the blinds from fully-closed.</label-->
+		
+		<div>
+			<label>But how open is it?:<label>
+			<input id="how_open" type="text" readonly />
+		</div>
+		
+		</div>
+		
+		<div>
+			<button type="button" onclick="doOpen()">oopen</button>
+		</div>
+		
+		<div>
+			<button type="button" onclick="doClose()">clothes</button>
+		</div>
+		
+		<div>
+			<button type="button" onclick="doReset()">ree set</button>
+		</div>
+		
+		<div>
+			<h2>Config your</h2>
+			<textarea id="config" rows=30 cols=80></textarea>
+			<div><button type="button" onclick="doConfig()">recon-fig</button></div>
+		</div>
+		
+	</body>
+</html>
