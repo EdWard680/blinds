@@ -17,7 +17,7 @@ class RequestHandler(SimpleHTTPRequestHandler, SimpleJSONRPCRequestHandler):
 	pass
 
 class AuthHandler(RequestHandler):
-	KEY = ''
+	get_key = lambda : b''
 
 	def do_HEAD(self):
 		''' head method '''
@@ -40,13 +40,13 @@ class AuthHandler(RequestHandler):
 			self.do_authhead()
 			self.wfile.write(b'no auth header received')
 			return False
-		elif tok.encode('ascii') == b'Basic '+ self.KEY:
+		elif tok.encode('ascii') == b'Basic '+ AuthHandler.get_key():
 			return True
 		else:
 			self.do_authhead()
 			self.wfile.write(tok.encode('ascii'))
 			self.wfile.write(b'not authenticated')
-			logger.info("Failed to authenticate%s", tok)
+			logger.info("Failed to authenticate: %s", tok)
 			return False
 		
 		return False
@@ -87,8 +87,8 @@ def start_server(controller, host='', port=80, handler=AuthHandler):
 	return thread
 
 # Starts the public server on port 80
-def start_public_server(controller, key):
-	AuthHandler.KEY = base64.b64encode(key)
+def start_public_server(controller):
+	AuthHandler.get_key = lambda : base64.b64encode((controller.server_config['username']+':'+controller.server_config['password']).encode('ascii'))
 	logger.info("Starting public server")
 	return start_server(controller)
 

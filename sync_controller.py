@@ -10,14 +10,24 @@ class SyncController(Controller):
 	def __init__(self, conf, scheduler):
 		self.scheduler = scheduler
 		self.recurring = {}
-		Controller.__init__(self, conf)
+		self.server_config = conf['server_config']
+		Controller.__init__(self, conf['hardware_config'])
 	
 	# Attempts to run the command immediately
 	def enqueue(self, f, args=(), priority=10):
 		return self.scheduler.enter(0, priority, f, (self,) + args)
 	
 	def reconfigure(self, new_conf):
-		self.enqueue(Controller.reconfigure, (new_conf,))
+		logger.debug("SyncController.reconfigure(%s)", str(new_conf))
+		if 'server_config' in new_conf:
+			for k, v in new_conf['server_config'].items():
+				self.server_config[k] = v
+		
+		if 'hardware_config' in new_conf:
+			self.enqueue(Controller.reconfigure, (new_conf['hardware_config'],))
+	
+	def get_config(self):
+		return {'hardware_config': Controller.get_config(self), 'server_config': self.server_config}
 	
 	def reset_position(self, pos=0):
 		self.enqueue(Controller.reset_position, (pos,))
@@ -73,7 +83,7 @@ class SyncController(Controller):
 	# Will cancel a command saved as name
 	def cancel_recurring(self, name):
 		logger.debug("SyncController.cancel_recurring(%s)", name)
-		if self.recurring[name] in self.scheduler.queue:
+		if name in self.recurring and self.recurring[name] in self.scheduler.queue:
 			logger.debug("  Cancelling previous command: %s", self.recurring[name])
 			self.scheduler.cancel(self.recurring[name])
 			del self.recurring[name]

@@ -23,9 +23,12 @@ class Controller:
 		self.reset_position()
 		self.config = {}
 		self.state = Controller.REST
-		self.reconfigure(config)
+		self._reconfigure(config)
 	
 	def reconfigure(self, config):
+		self._reconfigure(config)
+	
+	def _reconfigure(self, config):
 		logger.debug("Controller.reconfigure(%s)", config)
 		
 		# only overwrites what is present

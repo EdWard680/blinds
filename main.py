@@ -7,7 +7,7 @@ import logging
 import os
 import time
 
-def default_config():
+def default_hardware_config():
 	return {
 		'motor_pin': int(os.getenv('BLINDS_MOTOR_PIN', "0")),
 		'direction_pin': int(os.getenv('BLINDS_DIRECTION_PIN', "2")),
@@ -18,6 +18,17 @@ def default_config():
 		'long_additional_debounce_millis': int(os.getenv('BLINDS_LONG_ADDITIONAL_DEBOUNCE_MILLIS', "700"))
 	}
 
+def default_server_config():
+	return {
+		'username': os.getenv('BLINDS_SERVER_USERNAME', "ward"),
+		'password': os.getenv('BLINDS_SERVER_PASSWORD', "opensource")
+	}
+
+def default_config():
+	return {
+		'hardware_config': default_hardware_config(),
+		'server_config': default_server_config()
+	}
 
 def test_controller(conf):
 	logging.info("Running test_controller")
@@ -60,8 +71,9 @@ def server_controller(conf):
 	
 	s.enter(0.01, 0, check_button)
 	
-	local_server_thread = start_local_server(controller)
-	public_server_thread = start_public_server(controller, b'super:secret')
+	local_port = int(os.getenv('BLINDS_LOCAL_PORT', "8080"))
+	local_server_thread = start_local_server(controller, local_port)
+	public_server_thread = start_public_server(controller)
 	
 	while True:
 		s.run()
@@ -73,15 +85,13 @@ def main():
 	loglevel = getattr(logging, os.getenv('BLINDS_LOG_LEVEL', "DEBUG"), 5)
 	logging.basicConfig(level=loglevel)
 	
-	conf = default_config()
-	
 	mode = os.getenv('BLINDS_MODE', "LED_TEST")
 	if mode == "LED_TEST":
-		test_controller(conf)
+		test_controller(default_hardware_config())
 	elif mode == "BUTTON_TEST":
-		button_controller(conf)
+		button_controller(default_hardware_config())
 	elif mode == "SERVER":
-		server_controller(conf)
+		server_controller(default_config())
 	
 	
 
