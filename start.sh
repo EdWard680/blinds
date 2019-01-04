@@ -6,4 +6,5 @@ echo "Setting time zone to ${TIMEZONE=UTC}"
 echo "${TIMEZONE}" > /etc/timezone
 dpkg-reconfigure tzdata
 
+mkdir /tmp/balena
 python3 /usr/src/app/main.py

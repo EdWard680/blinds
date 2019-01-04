@@ -2,6 +2,8 @@ from controller import Controller
 from sync_controller import SyncController
 from server import start_public_server, start_local_server
 
+import lockfile
+
 import sched, copyreg
 import logging
 import os
@@ -68,10 +70,14 @@ def server_controller(conf):
 	
 	poll_period = os.getenv('BLINDS_POLL_PERIOD', 0.05)
 	
+	update_lock = lockfile.LockFile("/tmp/balena/updates.lock")
+	
 	logging.info("Starting scheduler")
 	while True:
 		controller.poll_button()
-		next_ev = controller.scheduler.run(False)
+		with update_lock:
+			next_ev = controller.scheduler.run(False)
+		
 		if next_ev is not None:
 			time.sleep(min(poll_period, next_ev))
 		else:
