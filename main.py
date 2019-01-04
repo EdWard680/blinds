@@ -2,7 +2,7 @@ from controller import Controller
 from sync_controller import SyncController
 from server import start_public_server, start_local_server
 
-import sched
+import sched, copyreg
 import logging
 import os
 import time
@@ -15,7 +15,8 @@ def default_hardware_config():
 		'open_millis': int(os.getenv('BLINDS_DEFAULT_OPEN_MILLIS', "6000")),
 		'close_offset_millis': int(os.getenv('BLINDS_DEFAULT_CLOSE_MILLIS', "0")),
 		'short_debounce_millis': int(os.getenv('BLINDS_SHORT_DEBOUNCE_MILLIS', "50")),
-		'long_additional_debounce_millis': int(os.getenv('BLINDS_LONG_ADDITIONAL_DEBOUNCE_MILLIS', "700"))
+		'long_additional_debounce_millis': int(os.getenv('BLINDS_LONG_ADDITIONAL_DEBOUNCE_MILLIS', "700")),
+		'save_file': os.getenv('BLINDS_SAVE_FILE', "/data/blinds.pickle")
 	}
 
 def default_server_config():
@@ -52,31 +53,29 @@ def button_controller(conf):
 		controller.close_blinds()
 
 def server_controller(conf):
-	logging.info("Running server")
+	logging.info("Running server mode")
 	
-	s = sched.scheduler(time.time, time.sleep)
-	controller = SyncController(conf, s)
+	# This hardcode is only necessitated because without it, for some reason
+	# we can't dill/pickle schedulers
+	copyreg.pickle(sched.scheduler, lambda s : (sched.scheduler, (s.timefunc, s.delayfunc), {'_queue': s._queue}))
 	
-	def check_button():
-		butt = controller.button_pressed()
-		if butt == Controller.SHORT_PRESS:
-			if controller.closed():
-				controller.open_blinds()
-			else:
-				controller.close_blinds()
-		elif butt == Controller.LONG_PRESS:
-			controller.reset_position()
-		
-		s.enter(0.01, 0, check_button)
-	
-	s.enter(0.01, 0, check_button)
+	controller = SyncController(conf, sched.scheduler(time.time, time.sleep))
 	
 	local_port = int(os.getenv('BLINDS_LOCAL_PORT', "8080"))
+	
 	local_server_thread = start_local_server(controller, local_port)
 	public_server_thread = start_public_server(controller)
 	
+	poll_period = os.getenv('BLINDS_POLL_PERIOD', 0.05)
+	
+	logging.info("Starting scheduler")
 	while True:
-		s.run()
+		controller.poll_button()
+		next_ev = controller.scheduler.run(False)
+		if next_ev is not None:
+			time.sleep(min(poll_period, next_ev))
+		else:
+			time.sleep(poll_period)
 	
 
 def main():

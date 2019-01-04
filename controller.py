@@ -1,5 +1,6 @@
 import wiringpi
 import logging
+import dill as pickle
 from wiringpi import INPUT, OUTPUT, PUD_OFF, PUD_UP, PUD_DOWN
 
 logger = logging.getLogger(__name__)
@@ -8,6 +9,25 @@ def run_motor_for(pin, dur):
 	wiringpi.digitalWrite(pin, 1)
 	wiringpi.delay(dur)
 	wiringpi.digitalWrite(pin, 0)
+
+def load_file(name):
+	try:
+		with open(name, "r+b") as f:
+			controller = pickle.load(f)
+			next_name = controller.config['save_file']
+			if not isinstance(controller, Controller):
+				return None
+			
+			if name == next_name:
+				return controller
+			else:
+				return load_file(next_name)
+	except OSError as err:
+		logger.error("Failed to load %s: %s", name, str(err))
+		return None
+	except:
+		logger.error("Unknown error loading %s", name)
+		return None
 
 # Maintains the state of the blinds.
 # Ensures that configuration changes don't break the current state of the blinds
@@ -20,29 +40,39 @@ class Controller:
 	def __init__(self, config):
 		logger.debug("Controller(%s)", config)
 		wiringpi.wiringPiSetup()
-		self.reset_position()
-		self.config = {}
+		
+		self.config = config
 		self.state = Controller.REST
+		self.amount_opened = 0
+		
+		loaded = load_file(config['save_file'])
+		
+		if not loaded is None:
+			self.__dict__.update(loaded.__dict__)  # wish i could do self = loaded
+			logger.info("Reloaded from save-file. amount_opened: %i", self.get_position())
+		
 		self._reconfigure(config)
 	
 	def reconfigure(self, config):
 		self._reconfigure(config)
 	
 	def _reconfigure(self, config):
-		logger.debug("Controller.reconfigure(%s)", config)
+		logger.debug("Controller._reconfigure(%s)", config)
 		
-		# only overwrites what is present
-		for k, v in config.items():
-			self.config[k] = v
+		self.config.update(config)
 		
 		wiringpi.pinMode(self.config['motor_pin'], OUTPUT)
 		wiringpi.pinMode(self.config['direction_pin'], OUTPUT)
 		wiringpi.pinMode(self.config['button_pin'], INPUT)
 		wiringpi.pullUpDnControl(self.config['button_pin'], PUD_UP)
+		
+		self.save()
 	
 	def reset_position(self, pos=0):
 		logger.debug("Controller.reset_position(%i)", pos)
 		self.amount_opened = pos
+		
+		self.save()
 	
 	def get_position(self):
 		return self.amount_opened
@@ -102,6 +132,8 @@ class Controller:
 			wiringpi.digitalWrite(dir_pin, 0)
 		self.state = Controller.REST
 		logger.debug("Blinds set. amount_opened = %i", self.amount_opened)
+		
+		self.save()
 	
 	def open_blinds(self):
 		logger.debug("Controller.open_blinds()")
@@ -112,3 +144,9 @@ class Controller:
 		
 		self.set_blinds(-self.config['close_offset_millis'])
 		self.reset_position()
+	
+	def save(self):
+		logger.debug("Controller.save_state()")
+		with open(self.config['save_file'], 'w+b') as f:
+			pickle.dump(self, f)
+	
