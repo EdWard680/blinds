@@ -5,6 +5,8 @@ from wiringpi import INPUT, OUTPUT, PUD_OFF, PUD_UP, PUD_DOWN
 
 logger = logging.getLogger(__name__)
 
+wiringpi.wiringPiSetup()
+
 def run_motor_for(pin, dur):
 	wiringpi.digitalWrite(pin, 1)
 	wiringpi.delay(dur)
@@ -12,16 +14,10 @@ def run_motor_for(pin, dur):
 
 def load_file(name):
 	try:
-		with open(name, "r+b") as f:
-			controller = pickle.load(f)
-			next_name = controller.config['save_file']
-			if not isinstance(controller, Controller):
-				return None
-			
-			if name == next_name:
-				return controller
-			else:
-				return load_file(next_name)
+		with open(name, 'r+b') as f:
+			ret = pickle.load(f)
+			ret.setup_pins()
+			return ret
 	except OSError as err:
 		logger.error("Failed to load %s: %s", name, str(err))
 		return None
@@ -39,34 +35,25 @@ class Controller:
 	
 	def __init__(self, config):
 		logger.debug("Controller(%s)", config)
-		wiringpi.wiringPiSetup()
 		
 		self.config = config
 		self.state = Controller.REST
 		self.amount_opened = 0
 		
-		loaded = load_file(config['save_file'])
-		
-		if not loaded is None:
-			self.__dict__.update(loaded.__dict__)  # wish i could do self = loaded
-			logger.info("Reloaded from save-file. amount_opened: %i", self.get_position())
-		
-		self._reconfigure(config)
+		self.setup_pins()
 	
 	def reconfigure(self, config):
-		self._reconfigure(config)
-	
-	def _reconfigure(self, config):
-		logger.debug("Controller._reconfigure(%s)", config)
-		
+		logger.debug("Controller.reconfigure(%s)", str(config))
 		self.config.update(config)
+		self.setup_pins()
+	
+	def setup_pins(self):
+		logger.debug("Controller.setup_pins()")
 		
 		wiringpi.pinMode(self.config['motor_pin'], OUTPUT)
 		wiringpi.pinMode(self.config['direction_pin'], OUTPUT)
 		wiringpi.pinMode(self.config['button_pin'], INPUT)
 		wiringpi.pullUpDnControl(self.config['button_pin'], PUD_UP)
-		
-		self.save()
 	
 	def reset_position(self, pos=0):
 		logger.debug("Controller.reset_position(%i)", pos)

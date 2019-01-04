@@ -1,10 +1,11 @@
-from controller import Controller
+from controller import Controller, load_file
 from sync_controller import SyncController
 from server import start_public_server, start_local_server
 
 import lockfile
 
-import sched, copyreg
+import copyreg
+import sched
 import logging
 import os
 import time
@@ -61,7 +62,9 @@ def server_controller(conf):
 	# we can't dill/pickle schedulers
 	copyreg.pickle(sched.scheduler, lambda s : (sched.scheduler, (s.timefunc, s.delayfunc), {'_queue': s._queue}))
 	
-	controller = SyncController(conf, sched.scheduler(time.time, time.sleep))
+	save_file = os.getenv('BLINDS_SAVE_FILE', "/data/blinds.pickle")
+	
+	controller = load_file(save_file) or SyncController(conf, sched.scheduler(time.time, time.sleep))
 	
 	local_port = int(os.getenv('BLINDS_LOCAL_PORT', "8080"))
 	
