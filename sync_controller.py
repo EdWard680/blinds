@@ -29,7 +29,7 @@ class SyncController(Controller):
 	def clean_enqueue(self, f, args=(), priority=10):
 		for ev in self.scheduler.queue:
 			if ev.action is f:
-				logger.debug("  Cancelling: %s", str(ev))
+				logger.info("  Cancelling: %s", str(ev))
 				self.scheduler.cancel(ev)
 		
 		self.enqueue(f, args, priority)
@@ -118,7 +118,7 @@ class SyncController(Controller):
 	def cancel_recurring(self, name):
 		logger.debug("SyncController.cancel_recurring(%s)", name)
 		if name in self.recurring and self.recurring[name] in self.scheduler.queue:
-			logger.debug("  Cancelling previous command: %s", self.recurring[name])
+			logger.info("  Cancelling previous command: %s", self.recurring[name])
 			self.scheduler.cancel(self.recurring[name])
 			del self.recurring[name]
 			self.save()

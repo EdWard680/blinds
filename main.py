@@ -102,7 +102,7 @@ def main():
 	logging.basicConfig(level=loglevel, handlers=[streamHandler, fileHandler])
 	sys.stdout = open(os.devnull, 'w')
 	
-	mode = os.getenv('BLINDS_MODE', "LED_TEST")
+	mode = os.getenv('BLINDS_MODE', "SERVER")
 	if mode == "LED_TEST":
 		test_controller(default_hardware_config())
 	elif mode == "BUTTON_TEST":
