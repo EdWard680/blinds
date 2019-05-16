@@ -9,7 +9,7 @@ wiringpi.wiringPiSetup()
 
 def run_motor_for(pin, dur):
 	wiringpi.digitalWrite(pin, 1)
-	wiringpi.delay(dur)
+	wiringpi.delay(int(dur))
 	wiringpi.digitalWrite(pin, 0)
 
 def load_file(name):
