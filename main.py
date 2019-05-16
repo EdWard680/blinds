@@ -7,7 +7,9 @@ import lockfile
 import copyreg
 import sched
 import logging
+import logging.handlers
 import os
+import sys
 import time
 
 def default_hardware_config():
@@ -77,21 +79,28 @@ def server_controller(conf):
 	
 	logging.info("Starting scheduler")
 	while True:
-		controller.poll_button()
-		with update_lock:
-			next_ev = controller.scheduler.run(False)
+		try:
+			controller.poll_button()
+			with update_lock:
+				next_ev = controller.scheduler.run(False)
 		
-		if next_ev is not None:
-			time.sleep(min(poll_period, next_ev))
-		else:
-			time.sleep(poll_period)
+			if next_ev is not None:
+				time.sleep(min(poll_period, next_ev))
+			else:
+				time.sleep(poll_period)
+		except Exception as e:
+			logging.error("There was an error: %s", str(e))
 	
 
 def main():
 	print("Starting blinds controller")
 	
 	loglevel = getattr(logging, os.getenv('BLINDS_LOG_LEVEL', "DEBUG"), 5)
-	logging.basicConfig(level=loglevel)
+	streamHandler = logging.StreamHandler(sys.stdout)
+	fileHandler = logging.handlers.RotatingFileHandler(
+		'blinds.log', mode='a', maxBytes=100000000, backupCount=10)
+	logging.basicConfig(level=loglevel, handlers=[streamHandler, fileHandler])
+	sys.stdout = open(os.devnull, 'w')
 	
 	mode = os.getenv('BLINDS_MODE', "LED_TEST")
 	if mode == "LED_TEST":
@@ -100,7 +109,6 @@ def main():
 		button_controller(default_hardware_config())
 	elif mode == "SERVER":
 		server_controller(default_config())
-	
 	
 
 if __name__ == "__main__":
