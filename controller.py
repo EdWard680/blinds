@@ -71,7 +71,6 @@ class Controller:
 		return self.config
 	
 	def closed(self):
-		logger.debug("Controller.closed() -> %i", 1 if self.amount_opened == 0 else 0)
 		return self.amount_opened == 0
 	
 	NO_PRESS, SHORT_PRESS, LONG_PRESS = tuple(range(3))
@@ -133,7 +132,7 @@ class Controller:
 		self.reset_position()
 	
 	def save(self):
-		logger.debug("Controller.save_state()")
+		# logger.debug("Controller.save_state()")
 		with open(self.config['save_file'], 'w+b') as f:
 			pickle.dump(self, f)
 	
