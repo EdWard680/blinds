@@ -2,6 +2,7 @@ import wiringpi
 import logging
 import dill as pickle
 from wiringpi import INPUT, OUTPUT, PUD_OFF, PUD_UP, PUD_DOWN
+import sensor
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,8 @@ class Controller:
 		self.amount_opened = 0
 		
 		self.setup_pins()
+		
+		self.sensor = sensor.LightSensor()
 	
 	def reconfigure(self, config):
 		logger.debug("Controller.reconfigure(%s)", str(config))
@@ -72,6 +75,12 @@ class Controller:
 	
 	def closed(self):
 		return self.amount_opened == 0
+	
+	def get_light(self):
+		return self.sensor.light
+	
+	def get_lux(self):
+		return self.sensor.lux
 	
 	NO_PRESS, SHORT_PRESS, LONG_PRESS = tuple(range(3))
 	def button_pressed(self):
