@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 wiringpi.wiringPiSetup()
 
+light_sense = sensor.LightSensor()
+
 def run_motor_for(pin, dur):
 	wiringpi.digitalWrite(pin, 1)
 	wiringpi.delay(int(dur))
@@ -42,8 +44,6 @@ class Controller:
 		self.amount_opened = 0
 		
 		self.setup_pins()
-		
-		self.sensor = sensor.LightSensor()
 	
 	def reconfigure(self, config):
 		logger.debug("Controller.reconfigure(%s)", str(config))
@@ -77,10 +77,10 @@ class Controller:
 		return self.amount_opened == 0
 	
 	def get_light(self):
-		return self.sensor.light
+		return light_sense.light
 	
 	def get_lux(self):
-		return self.sensor.lux
+		return light_sense.lux
 	
 	NO_PRESS, SHORT_PRESS, LONG_PRESS = tuple(range(3))
 	def button_pressed(self):
